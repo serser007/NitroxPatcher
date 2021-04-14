@@ -11,7 +11,7 @@ using WMPLib;
 
 namespace NitroxPatch
 {
-    public partial class Form1 : Form
+    public partial class NitroxPatchForm : Form
     {
         private const string SubnauticaAppFile = "Subnautica.exe";
         private const string NitroxAppFile = "NitroxLauncher.exe";
@@ -25,7 +25,7 @@ namespace NitroxPatch
         private bool isMoving;
         private string wmpTempFile;
 
-        public Form1()
+        public NitroxPatchForm()
         {
             InitializeComponent();
         }
