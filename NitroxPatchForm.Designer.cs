@@ -41,9 +41,14 @@ namespace NitroxPatch
             this.nitroxPathSelectButton = new System.Windows.Forms.Button();
             this.setupButton = new System.Windows.Forms.Button();
             this.folderBrowser = new System.Windows.Forms.FolderBrowserDialog();
+            this.imitateSubnauticaCheckBox = new System.Windows.Forms.CheckBox();
+            this.imitationPathGroupBox = new System.Windows.Forms.GroupBox();
+            this.imitationPathLabel = new System.Windows.Forms.Label();
+            this.imitationPathSelectButton = new System.Windows.Forms.Button();
             this.panel1.SuspendLayout();
             this.subnauticaPathGroupBox.SuspendLayout();
             this.nitroxPathGroupBox.SuspendLayout();
+            this.imitationPathGroupBox.SuspendLayout();
             this.SuspendLayout();
             // 
             // panel1
@@ -159,20 +164,71 @@ namespace NitroxPatch
             // 
             this.setupButton.Dock = System.Windows.Forms.DockStyle.Fill;
             this.setupButton.Font = new System.Drawing.Font("Segoe UI", 20F);
-            this.setupButton.Location = new System.Drawing.Point(0, 167);
+            this.setupButton.Location = new System.Drawing.Point(0, 246);
             this.setupButton.Name = "setupButton";
-            this.setupButton.Size = new System.Drawing.Size(394, 51);
+            this.setupButton.Size = new System.Drawing.Size(394, 63);
             this.setupButton.TabIndex = 4;
             this.setupButton.Text = "Setup";
             this.setupButton.UseVisualStyleBackColor = true;
             this.setupButton.Click += new System.EventHandler(this.setupButton_Click);
             // 
+            // imitateSubnauticaCheckBox
+            // 
+            this.imitateSubnauticaCheckBox.AutoSize = true;
+            this.imitateSubnauticaCheckBox.Dock = System.Windows.Forms.DockStyle.Top;
+            this.imitateSubnauticaCheckBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
+            this.imitateSubnauticaCheckBox.Location = new System.Drawing.Point(0, 167);
+            this.imitateSubnauticaCheckBox.Name = "imitateSubnauticaCheckBox";
+            this.imitateSubnauticaCheckBox.Size = new System.Drawing.Size(394, 21);
+            this.imitateSubnauticaCheckBox.TabIndex = 5;
+            this.imitateSubnauticaCheckBox.Text = "imitate subnauitica in different folder (windows 10)";
+            this.imitateSubnauticaCheckBox.UseVisualStyleBackColor = true;
+            // 
+            // imitationPathGroupBox
+            // 
+            this.imitationPathGroupBox.Controls.Add(this.imitationPathLabel);
+            this.imitationPathGroupBox.Controls.Add(this.imitationPathSelectButton);
+            this.imitationPathGroupBox.Dock = System.Windows.Forms.DockStyle.Top;
+            this.imitationPathGroupBox.Font = new System.Drawing.Font("Segoe UI", 12F);
+            this.imitationPathGroupBox.Location = new System.Drawing.Point(0, 188);
+            this.imitationPathGroupBox.Name = "imitationPathGroupBox";
+            this.imitationPathGroupBox.Size = new System.Drawing.Size(394, 58);
+            this.imitationPathGroupBox.TabIndex = 4;
+            this.imitationPathGroupBox.TabStop = false;
+            this.imitationPathGroupBox.Text = "Installation Path";
+            this.imitationPathGroupBox.Visible = false;
+            // 
+            // imitationPathLabel
+            // 
+            this.imitationPathLabel.AutoEllipsis = true;
+            this.imitationPathLabel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.imitationPathLabel.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
+            this.imitationPathLabel.Location = new System.Drawing.Point(3, 25);
+            this.imitationPathLabel.Name = "imitationPathLabel";
+            this.imitationPathLabel.Size = new System.Drawing.Size(315, 30);
+            this.imitationPathLabel.TabIndex = 0;
+            this.imitationPathLabel.Text = "...";
+            this.imitationPathLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // imitationPathSelectButton
+            // 
+            this.imitationPathSelectButton.Dock = System.Windows.Forms.DockStyle.Right;
+            this.imitationPathSelectButton.Location = new System.Drawing.Point(318, 25);
+            this.imitationPathSelectButton.Name = "imitationPathSelectButton";
+            this.imitationPathSelectButton.Size = new System.Drawing.Size(73, 30);
+            this.imitationPathSelectButton.TabIndex = 1;
+            this.imitationPathSelectButton.Text = "Select";
+            this.imitationPathSelectButton.UseVisualStyleBackColor = true;
+            this.imitationPathSelectButton.Click += new System.EventHandler(this.imitationPathSelectButton_Click);
+            // 
             // NitroxPatchForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(394, 218);
+            this.ClientSize = new System.Drawing.Size(394, 309);
             this.Controls.Add(this.setupButton);
+            this.Controls.Add(this.imitationPathGroupBox);
+            this.Controls.Add(this.imitateSubnauticaCheckBox);
             this.Controls.Add(this.nitroxPathGroupBox);
             this.Controls.Add(this.subnauticaPathGroupBox);
             this.Controls.Add(this.panel1);
@@ -188,7 +244,9 @@ namespace NitroxPatch
             this.panel1.ResumeLayout(false);
             this.subnauticaPathGroupBox.ResumeLayout(false);
             this.nitroxPathGroupBox.ResumeLayout(false);
+            this.imitationPathGroupBox.ResumeLayout(false);
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -205,6 +263,10 @@ namespace NitroxPatch
         private System.Windows.Forms.Label nitroxPathLabel;
         private System.Windows.Forms.Button setupButton;
         private System.Windows.Forms.FolderBrowserDialog folderBrowser;
+        private System.Windows.Forms.CheckBox imitateSubnauticaCheckBox;
+        private System.Windows.Forms.GroupBox imitationPathGroupBox;
+        private System.Windows.Forms.Label imitationPathLabel;
+        private System.Windows.Forms.Button imitationPathSelectButton;
     }
 }
 

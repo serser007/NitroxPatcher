@@ -2,10 +2,13 @@
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Security.Principal;
 using System.Threading;
 using System.Windows.Forms;
+using Microsoft.Win32;
 using NitroxPatch.Properties;
 using WMPLib;
 
@@ -13,13 +16,27 @@ namespace NitroxPatch
 {
     public partial class NitroxPatchForm : Form
     {
-        private const string SubnauticaAppFile = "Subnautica.exe";
-        private const string NitroxAppFile = "NitroxLauncher.exe";
-        private const string PatchedNitroxAppFile = "PatchedNitroxLauncher.exe";
-        private const string CrackSteamFile = "steam_api64.dll";
-        private const string SubnauticaDataFile = "Subnautica_Data";
+        private const string SubnauticaAppFileName = "Subnautica.exe";
+        private const string NitroxAppFileName = "NitroxLauncher.exe";
+        private const string PatchedNitroxAppFileName = "PatchedNitroxLauncher.exe";
+        private const string CrackSteamFileName = "steam_api64.dll";
+        private const string SubnauticaDataDirectoryName = "Subnautica_Data";
+        private const string MagicDirectoryName = ".egstore";
         private const string FileSelectErrorTemplate = "There is no {0} app on selected path";
-        private const string MagicDir = ".egstore";
+
+
+        private string SubnauticaFile => Path.Combine(subnauticaPathLabel.Text, SubnauticaAppFileName);
+        private string SubnauticaFileReplaced => Path.Combine(subnauticaPathLabel.Text, "." + SubnauticaAppFileName);
+        private string DataDirectory => Path.Combine(subnauticaPathLabel.Text, SubnauticaDataDirectoryName);
+        private string HiddenDataDirectory => Path.Combine(subnauticaPathLabel.Text, "." + SubnauticaDataDirectoryName);
+        private string MagicDirectory => Path.Combine(subnauticaPathLabel.Text, MagicDirectoryName);
+        private string NitroxFile => Path.Combine(nitroxPathLabel.Text, NitroxAppFileName);
+        private string NitroxFilePatched => Path.Combine(nitroxPathLabel.Text, PatchedNitroxAppFileName);
+        private string CrackSteamFile => Path.Combine(subnauticaPathLabel.Text, CrackSteamFileName);
+        private string CrackSteamFileHidden => Path.Combine(subnauticaPathLabel.Text, "." + CrackSteamFileName);
+        private string DataDirectoryLinked => Path.Combine(imitationPathLabel.Text, SubnauticaDataDirectoryName);
+        private string MagicDirectoryDedicated => Path.Combine(imitationPathLabel.Text, MagicDirectoryName);
+        private string PathFile => Path.Combine(nitroxPathLabel.Text, "path.txt");
 
         private Point lastMousePosition;
         private bool isMoving;
@@ -48,6 +65,15 @@ namespace NitroxPatch
                 "Nitrox...");
         }
         
+        private void imitationPathSelectButton_Click(object sender, EventArgs e)
+        {
+            SelectPath(
+                IsEmptyPath,
+                () => MessageBox.Show("Directory must be empty"), 
+                s => imitationPathLabel.Text = s,
+                "Imitation Path...");
+        }
+
         private void closeButton_Click(object sender, EventArgs e)
         {
             Application.Exit();
@@ -69,21 +95,29 @@ namespace NitroxPatch
         {
             var isSubnauticaOk = IsSubnauticaPath(subnauticaPathLabel.Text);
             var isNitroxOk = IsNitroxPath(nitroxPathLabel.Text);
+            var isImitationOk = !imitateSubnauticaCheckBox.Checked || IsEmptyPath(imitationPathLabel.Text);
             if (!isSubnauticaOk)
                 MessageBox.Show(string.Format(FileSelectErrorTemplate, "Subnautica"));
             if (!isNitroxOk)
                 MessageBox.Show(string.Format(FileSelectErrorTemplate, "Nitrox"));
-            return isSubnauticaOk && isNitroxOk;
+            if (!isImitationOk)
+                MessageBox.Show("Imitation directory myst be empty");
+            return isSubnauticaOk && isNitroxOk && isImitationOk;
         }
 
         private static bool IsSubnauticaPath(string path)
         {
-            return File.Exists(Path.Combine(path, SubnauticaAppFile));
+            return File.Exists(Path.Combine(path, SubnauticaAppFileName));
+        }
+
+        private static bool IsEmptyPath(string path)
+        {
+            return  Directory.Exists(path) && !Directory.EnumerateFiles(path).Any();
         }
 
         private static bool IsNitroxPath(string path)
         {
-            return File.Exists(Path.Combine(path, NitroxAppFile));
+            return File.Exists(Path.Combine(path, NitroxAppFileName));
         }
 
         private void Form1_MouseDown(object sender, MouseEventArgs e)
@@ -110,25 +144,75 @@ namespace NitroxPatch
         {
             if(!IsPathsValid())
                 return;
-            var subnauticaFile = Path.Combine(subnauticaPathLabel.Text, SubnauticaAppFile);
-            var subnauticaFileReplaced = Path.Combine(subnauticaPathLabel.Text, "." + SubnauticaAppFile);
-            var nitroxFile = Path.Combine(nitroxPathLabel.Text, NitroxAppFile);
-            var crackSteamFile = Path.Combine(subnauticaPathLabel.Text, CrackSteamFile);
-            var crackSteamFileHidden = Path.Combine(subnauticaPathLabel.Text, "." + CrackSteamFile);
-            var dataDirectory = Path.Combine(subnauticaPathLabel.Text, SubnauticaDataFile);
-            var hiddenDataDirectory = Path.Combine(subnauticaPathLabel.Text, "." + SubnauticaDataFile);
-            var magicDirectory = Path.Combine(subnauticaPathLabel.Text, MagicDir);
 
-            if (!File.Exists(subnauticaFileReplaced))
-                File.Move(subnauticaFile, subnauticaFileReplaced);
-            if (!Directory.Exists(magicDirectory))
-                Directory.CreateDirectory(magicDirectory);
-            BuildLinkRenameApp(subnauticaPathLabel.Text, SubnauticaAppFile, subnauticaFileReplaced, crackSteamFileHidden, crackSteamFile, dataDirectory, hiddenDataDirectory, "NitroxLauncher", true);
-            BuildLinkRenameApp(nitroxPathLabel.Text, PatchedNitroxAppFile, nitroxFile, crackSteamFile, crackSteamFileHidden, hiddenDataDirectory, dataDirectory, ".Subnautica", false);
+            CleanSubnauticaDir();
+            if (IsWindows10() && imitateSubnauticaCheckBox.Checked)
+                PatchWindows10();
+            else
+                PatchUniversal();
+            DoSuccessExit();
+        }
+
+        private static bool IsWindows10()
+        {
+            var registry = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+            var productName = (string)registry?.GetValue("ProductName");
+            return productName?.StartsWith("Windows 10") == true;
+        }
+
+        public static bool IsAdministrator()
+        {
+            var identity = WindowsIdentity.GetCurrent();
+            var principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+
+        private void CleanSubnauticaDir()
+        {
+            if (File.Exists(NitroxFilePatched))
+                File.Delete(NitroxFilePatched);
+
+            if (File.Exists(SubnauticaFileReplaced) && new FileInfo(SubnauticaFile).Length < 20000)
+                File.Replace(SubnauticaFileReplaced, SubnauticaFile, SubnauticaFile + ".old");
+
+            if (File.Exists(CrackSteamFileHidden) && !File.Exists(CrackSteamFile))
+                File.Move(CrackSteamFileHidden, CrackSteamFile);
+
+            if (Directory.Exists(HiddenDataDirectory) && !Directory.Exists(DataDirectory))
+                Directory.Move(HiddenDataDirectory, DataDirectory);
+
+            if (Directory.Exists(MagicDirectory))
+                Directory.Delete(MagicDirectory);
+        }
+
+        private void PatchWindows10()
+        {
+            if (!Directory.Exists(imitationPathLabel.Text))
+                Directory.CreateDirectory(imitationPathLabel.Text);
+            if (!Directory.Exists(MagicDirectoryDedicated))
+                Directory.CreateDirectory(MagicDirectoryDedicated);
+            BuildLinkRenameApp(imitationPathLabel.Text, SubnauticaAppFileName, SubnauticaFile, null, null, null, null, null, false);
+            Process.Start("cmd.exe", $"/C mklink \"{DataDirectoryLinked}\" \"{DataDirectory}\"")?.WaitForExit();
+            File.WriteAllText(PathFile, imitationPathLabel.Text);
+        }
+
+        private void PatchUniversal()
+        {
+            if (!File.Exists(SubnauticaFileReplaced))
+                File.Move(SubnauticaFile, SubnauticaFileReplaced);
+            if (!Directory.Exists(MagicDirectory))
+                Directory.CreateDirectory(MagicDirectory);
+            BuildLinkRenameApp(subnauticaPathLabel.Text, SubnauticaAppFileName, SubnauticaFileReplaced, CrackSteamFileHidden, CrackSteamFile, DataDirectory, HiddenDataDirectory, "NitroxLauncher", true);
+            BuildLinkRenameApp(nitroxPathLabel.Text, PatchedNitroxAppFileName, NitroxFile, CrackSteamFile, CrackSteamFileHidden, HiddenDataDirectory, DataDirectory, ".Subnautica", false);
+            File.WriteAllText(PathFile, subnauticaPathLabel.Text);
+        }
+
+        private void DoSuccessExit()
+        {
             MessageBox.Show("Success!", "Good start!", MessageBoxButtons.OK, MessageBoxIcon.None);
             Application.Exit();
         }
-        
+
         private void BuildLinkRenameApp(string path, string filename, string link, string renameFrom, string renameTo, string directoryRenameFrom, string directoryRenameTo, string differentProcess, bool kill)
         {
             var assemblyName = new AssemblyName(filename);
@@ -150,62 +234,72 @@ namespace NitroxPatch
             var i = il.DeclareLocal(typeof(int));
             var processes = il.DeclareLocal(typeof(Process[]));
 
-            il.BeginExceptionBlock();
-            il.Emit(OpCodes.Ldstr, renameFrom);
-            il.Emit(OpCodes.Ldstr, renameTo);
-            il.EmitCall(OpCodes.Call, methodFileRename ?? throw new InvalidOperationException(), null);
-            il.BeginCatchBlock(typeof(Exception));
-            il.EndExceptionBlock();
-            il.BeginExceptionBlock();
-            il.Emit(OpCodes.Ldstr, directoryRenameFrom);
-            il.Emit(OpCodes.Ldstr, directoryRenameTo);
-            il.EmitCall(OpCodes.Call, methodDirectoryRename ?? throw new InvalidOperationException(), null);
-            il.BeginCatchBlock(typeof(Exception));
-            il.EndExceptionBlock();
-
-            il.Emit(OpCodes.Ldstr, differentProcess);
-            il.EmitCall(OpCodes.Call, methodGetProcesses ?? throw new InvalidOperationException(), null);
-            il.Emit(OpCodes.Stloc, processes);
-
-            if (kill)
+            if (renameFrom != null && renameTo != null)
             {
-                il.Emit(OpCodes.Ldc_I4_0);
-                il.Emit(OpCodes.Stloc, i);
-                il.MarkLabel(ilLabel1);
-
-                //if (i >= processes.Length)
-                //  break;
-                il.Emit(OpCodes.Ldloc, i);
-                il.Emit(OpCodes.Ldloc, processes);
-                il.Emit(OpCodes.Ldlen);
-                il.Emit(OpCodes.Bge, ilLabel2);
-
-                // processes[i].Kill()
-                il.Emit(OpCodes.Ldloc, processes);
-                il.Emit(OpCodes.Ldloc, i);
-                il.Emit(OpCodes.Ldelem, typeof(Process));
-                il.EmitCall(OpCodes.Call, methodKill ?? throw new InvalidOperationException(), null);
-
-                // i++;
-                il.Emit(OpCodes.Ldloc, i);
-                il.Emit(OpCodes.Ldc_I4_1);
-                il.Emit(OpCodes.Add);
-                il.Emit(OpCodes.Stloc, i);
-
-                il.Emit(OpCodes.Br_S, ilLabel1);
-
-              
+                il.BeginExceptionBlock();
+                il.Emit(OpCodes.Ldstr, renameFrom);
+                il.Emit(OpCodes.Ldstr, renameTo);
+                il.EmitCall(OpCodes.Call, methodFileRename ?? throw new InvalidOperationException(), null);
+                il.BeginCatchBlock(typeof(Exception));
+                il.EndExceptionBlock();
             }
-            else
+
+            if (directoryRenameFrom != null && directoryRenameTo != null)
             {
-                il.Emit(OpCodes.Ldloc, processes);
-                il.Emit(OpCodes.Ldlen);
-                il.Emit(OpCodes.Ldc_I4_0);
-                il.Emit(OpCodes.Beq, ilLabel2);
-                il.EmitWriteLine($"Please close {differentProcess} window");
-                il.EmitCall(OpCodes.Call, methodReadKey ?? throw new InvalidOperationException(), null);
-                il.Emit(OpCodes.Pop);
-                il.Emit(OpCodes.Ret);
+                il.BeginExceptionBlock();
+                il.Emit(OpCodes.Ldstr, directoryRenameFrom);
+                il.Emit(OpCodes.Ldstr, directoryRenameTo);
+                il.EmitCall(OpCodes.Call, methodDirectoryRename ?? throw new InvalidOperationException(), null);
+                il.BeginCatchBlock(typeof(Exception));
+                il.EndExceptionBlock();
+            }
+
+            if (differentProcess != null)
+            {
+                il.Emit(OpCodes.Ldstr, differentProcess);
+                il.EmitCall(OpCodes.Call, methodGetProcesses ?? throw new InvalidOperationException(), null);
+                il.Emit(OpCodes.Stloc, processes);
+
+                if (kill)
+                {
+                    il.Emit(OpCodes.Ldc_I4_0);
+                    il.Emit(OpCodes.Stloc, i);
+                    il.MarkLabel(ilLabel1);
+
+                    //if (i >= processes.Length)
+                    //  break;
+                    il.Emit(OpCodes.Ldloc, i);
+                    il.Emit(OpCodes.Ldloc, processes);
+                    il.Emit(OpCodes.Ldlen);
+                    il.Emit(OpCodes.Bge, ilLabel2);
+
+                    // processes[i].Kill()
+                    il.Emit(OpCodes.Ldloc, processes);
+                    il.Emit(OpCodes.Ldloc, i);
+                    il.Emit(OpCodes.Ldelem, typeof(Process));
+                    il.EmitCall(OpCodes.Call, methodKill ?? throw new InvalidOperationException(), null);
+
+                    // i++;
+                    il.Emit(OpCodes.Ldloc, i);
+                    il.Emit(OpCodes.Ldc_I4_1);
+                    il.Emit(OpCodes.Add);
+                    il.Emit(OpCodes.Stloc, i);
+
+                    il.Emit(OpCodes.Br_S, ilLabel1);
+
+
+                }
+                else
+                {
+                    il.Emit(OpCodes.Ldloc, processes);
+                    il.Emit(OpCodes.Ldlen);
+                    il.Emit(OpCodes.Ldc_I4_0);
+                    il.Emit(OpCodes.Beq, ilLabel2);
+                    il.EmitWriteLine($"Please close {differentProcess} window");
+                    il.EmitCall(OpCodes.Call, methodReadKey ?? throw new InvalidOperationException(), null);
+                    il.Emit(OpCodes.Pop);
+                    il.Emit(OpCodes.Ret);
+                }
             }
 
             il.MarkLabel(ilLabel2);
@@ -226,6 +320,31 @@ namespace NitroxPatch
 
             var wmp = new WindowsMediaPlayer {URL = wmpTempFile};
             wmp.controls.play();
+                
+            var isWindows10 = IsWindows10();
+            imitateSubnauticaCheckBox.Visible = isWindows10;
+            imitateSubnauticaCheckBox.CheckedChanged += (_, __) => UpdateUI();
+            UpdateUI();
+        }
+
+        // ReSharper disable once InconsistentNaming
+        private void UpdateUI()
+        {
+            imitationPathGroupBox.Visible = imitateSubnauticaCheckBox.Checked;
+            UpdateHeight();
+        }
+
+        private void UpdateHeight()
+        {
+            Height = CalculateHeight();
+        }
+
+        private int CalculateHeight()
+        {
+            var staticHeight = label1.Height + nitroxPathGroupBox.Height + subnauticaPathGroupBox.Height + 60;
+            var checkBoxHeight = imitateSubnauticaCheckBox.Visible ? imitateSubnauticaCheckBox.Height : 0;
+            var imitationPathHeight = imitateSubnauticaCheckBox.Visible && imitateSubnauticaCheckBox.Checked ? imitationPathGroupBox.Height : 0;
+            return staticHeight + checkBoxHeight + imitationPathHeight;
         }
 
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
